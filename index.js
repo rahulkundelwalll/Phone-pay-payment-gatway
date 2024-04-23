@@ -69,6 +69,6 @@ app.get("/redirect-url/:merchantId",(req,res)=>{
 
 
 app.listen(process.env.PORT, () => {
-  console.log(`listening on port ${process.env.PORT}`);
+  console.log(`listen on port ${process.env.PORT}`);
   
 });
