@@ -28,8 +28,6 @@ app.get("/pay", (req, res) => {
     },
   };
 
-    
-  //   "SHA256(base64 encoded payload + "/pg/v1/pay" + salt key) + ### + salt index"
   const bufferObj = Buffer.from(JSON.stringify(payload), "utf-8");
   const base64EncodedPayload = bufferObj.toString("base64");
 
@@ -38,37 +36,60 @@ app.get("/pay", (req, res) => {
     "###" +
     process.env.SALT_INDEX;
 
-    const options = {
-      method: "post",
-      url: `${process.env.PHONE_PE_HOST_URL}${payEnd}`,
-      headers: {
-        accept: "application/json", // Change to application/json
-        "Content-Type": "application/json",
-        "X-VERIFY": x_verify,
-      },
-      data: {
-        request: base64EncodedPayload,
-      },
-    };
+  const options = {
+    method: "post",
+    url: `${process.env.PHONE_PE_HOST_URL}${payEnd}`,
+    headers: {
+      accept: "application/json", 
+      "Content-Type": "application/json",
+      "X-VERIFY": x_verify,
+    },
+    data: {
+      request: base64EncodedPayload,
+    },
+  };
   axios
     .request(options)
     .then(function (response) {
       console.log(response.data);
       const url = response.data.data.instrumentResponse.redirectInfo.url;
-      res.send(url);
+      res.redirect(url); // Redirect to the payment page
     })
     .catch(function (error) {
       console.error(error);
     });
 });
 
-app.get("/redirect-url/:merchantId",(req,res)=>{
-  const {merchantTransactionId} = req.params;  
-  res.send()
-})
+app.get("/redirect-url/:merchantTransactionId", (req, res) => {
+  const { merchantTransactionId } = req.params;
+  console.log(merchantTransactionId);
+  if (merchantTransactionId) {
+    const xVerify  = sha256(`/pg/v1/status/${process.env.Merchant_ID}}/${merchantTransactionId} + ${process.env.SALT_KEY}`) + "###" + process.env.SALT_INDEX;
+    const options = {
+      method: "get",
+      url: `${process.env.PHONE_PE_HOST_URL}/pg/v1/status/${process.env.Merchant_ID}/${merchantTransactionId}`,
+      headers: {
+        accept: "application/json",
+        "Content-Type": "application/json",
+        "X-MERCHANT-ID":merchantTransactionId,
+        "X-VERIFY": xVerify,
+      },
+    };
+    axios
+      .request(options)
+      .then(function (response) {
+        console.log(response.data);
+        res.send(response.data); // Send the response data to the client
+      })
+      .catch(function (error) {
+        console.error(error);
+      });
+  } else {
+    res.send("error");
+  }
+});
 
 
 app.listen(process.env.PORT, () => {
   console.log(`listen on port ${process.env.PORT}`);
-  
 });
